@@ -1,71 +1,33 @@
 <?php
 
-namespace Nemo64\DbalRdsData;
+declare(strict_types=1);
 
+namespace Nemo64\DbalRdsData;
 
 use Aws\RDSDataService\Exception\RDSDataServiceException;
 use Aws\RDSDataService\RDSDataServiceClient;
 use Aws\Result;
 use Doctrine\DBAL\Driver\Statement;
 
+use function preg_match;
+use function sleep;
+
 class RdsDataConnection extends AbstractConnection
 {
-    /**
-     * @var RDSDataServiceClient
-     */
-    private $client;
+    private RdsDataConverter $dataConverter;
 
-    /**
-     * @var string
-     */
-    private $resourceArn;
+    private RdsDataStatement|null $lastStatement = null;
 
-    /**
-     * @var string
-     */
-    private $secretArn;
+    private string|null $transactionId = null;
 
-    /**
-     * @var string|null
-     */
-    private $database;
+    private string|null $lastInsertedId = null;
 
-    /**
-     * @var RdsDataConverter
-     */
-    private $dataConverter;
+    private int $pauseRetries = 0;
 
-    /**
-     * @var RdsDataStatement|null
-     */
-    private $lastStatement;
+    private int $pauseRetryDelay = 5;
 
-    /**
-     * @var null|string
-     */
-    private $transactionId = null;
-
-    /**
-     * @var null|string
-     */
-    private $lastInsertedId;
-
-    /**
-     * @var int
-     */
-    private $pauseRetries = 0;
-
-    /**
-     * @var int
-     */
-    private $pauseRetryDelay = 5;
-
-    public function __construct(RDSDataServiceClient $client, string $resourceArn, string $secretArn, string $database = null)
+    public function __construct(private RDSDataServiceClient $client, private string $resourceArn, private string $secretArn, private string|null $database = null)
     {
-        $this->client = $client;
-        $this->resourceArn = $resourceArn;
-        $this->secretArn = $secretArn;
-        $this->database = $database;
         $this->dataConverter = new RdsDataConverter();
     }
 
@@ -83,18 +45,17 @@ class RdsDataConnection extends AbstractConnection
     {
         // allow selecting a database by "use database;" statement
         if (preg_match('#^\s*use\s+(?:(\w+)|`([^`]+)`)\s*;?\s*$#i', $prepareString, $match)) {
-            return new CallbackStatement(function () use ($match) {
+            return new CallbackStatement(function () use ($match): void {
                 $this->setDatabase($match[1] ?: $match[2]);
             });
         }
 
         $this->lastStatement = new RdsDataStatement($this, $prepareString, $this->dataConverter);
+
         return $this->lastStatement;
     }
 
     /**
-     * @param string $id
-     *
      * @internal should only be used by the statement class
      */
     public function setLastInsertId(string $id): void
@@ -111,9 +72,11 @@ class RdsDataConnection extends AbstractConnection
     }
 
     /**
-     * @inheritDoc
      * @see https://docs.aws.amazon.com/rdsdataservice/latest/APIReference/API_BeginTransaction.html
+     *
      * @throws RdsDataException
+     *
+     * @inheritDoc
      */
     public function beginTransaction(): bool
     {
@@ -129,13 +92,16 @@ class RdsDataConnection extends AbstractConnection
 
         $response = $this->call('beginTransaction', $args);
         $this->transactionId = $response['transactionId'];
+
         return true;
     }
 
     /**
-     * @inheritDoc
      * @see https://docs.aws.amazon.com/rdsdataservice/latest/APIReference/API_CommitTransaction.html
+     *
      * @throws RdsDataException
+     *
+     * @inheritDoc
      */
     public function commit(): bool
     {
@@ -151,13 +117,16 @@ class RdsDataConnection extends AbstractConnection
 
         $this->call('commitTransaction', $args);
         $this->transactionId = null;
+
         return true;
     }
 
     /**
-     * @inheritDoc
      * @see https://docs.aws.amazon.com/rdsdataservice/latest/APIReference/API_RollbackTransaction.html
+     *
      * @throws RdsDataException
+     *
+     * @inheritDoc
      */
     public function rollBack(): bool
     {
@@ -173,13 +142,11 @@ class RdsDataConnection extends AbstractConnection
 
         $this->call('rollbackTransaction', $args);
         $this->transactionId = null;
+
         return true;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function errorCode(): ?string
+    public function errorCode(): string|null
     {
         if ($this->lastStatement === null) {
             return null;
@@ -215,17 +182,17 @@ class RdsDataConnection extends AbstractConnection
         return $this->secretArn;
     }
 
-    public function getDatabase(): ?string
+    public function getDatabase(): string|null
     {
         return $this->database;
     }
 
-    public function setDatabase(?string $database): void
+    public function setDatabase(string|null $database): void
     {
         $this->database = $database;
     }
 
-    public function getTransactionId(): ?string
+    public function getTransactionId(): string|null
     {
         return $this->transactionId;
     }
@@ -253,10 +220,6 @@ class RdsDataConnection extends AbstractConnection
     /**
      * Runs a rds data command and handles errors.
      *
-     * @param string $command
-     * @param array $args
-     * @param int $retry
-     * @return Result
      * @throws RdsDataException
      */
     public function call(string $command, array $args, int $retry = 0): Result
@@ -271,6 +234,7 @@ class RdsDataConnection extends AbstractConnection
             $interpretedException = RdsDataException::interpretErrorMessage($exception->getAwsErrorMessage());
             if ($interpretedException->getErrorCode() === '6000' && $this->getPauseRetries() > $retry) {
                 sleep($this->getPauseRetryDelay());
+
                 return $this->call($command, $args, $retry + 1);
             }
 

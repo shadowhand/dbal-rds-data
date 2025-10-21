@@ -1,16 +1,19 @@
 <?php
 
-namespace Nemo64\DbalRdsData\Tests;
+declare(strict_types=1);
 
+namespace Nemo64\DbalRdsData\Tests;
 
 use Doctrine\DBAL\ParameterType;
 use Nemo64\DbalRdsData\RdsDataConverter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+use function base64_encode;
+
 class RdsDataConverterTest extends TestCase
 {
-    public static function data()
+    public static function data(): array
     {
         return [
             [['blobValue' => base64_encode('hi')], 'hi', ParameterType::LARGE_OBJECT],
@@ -25,7 +28,7 @@ class RdsDataConverterTest extends TestCase
     }
 
     #[DataProvider('data')]
-    public function testConvertToValue($json, $php, $type)
+    public function testConvertToValue(array $json, mixed $php, int $type): void
     {
         $converter = new RdsDataConverter();
         $convertedValue = $converter->convertToValue($json);
@@ -33,7 +36,7 @@ class RdsDataConverterTest extends TestCase
     }
 
     #[DataProvider('data')]
-    public function testConvertToJson($json, $php, $type)
+    public function testConvertToJson(array $json, mixed $php, int $type): void
     {
         $converter = new RdsDataConverter();
         $this->assertEquals($json, $converter->convertToJson($php, $type));

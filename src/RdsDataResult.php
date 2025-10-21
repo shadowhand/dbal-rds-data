@@ -1,31 +1,41 @@
 <?php
 
-namespace Nemo64\DbalRdsData;
+declare(strict_types=1);
 
+namespace Nemo64\DbalRdsData;
 
 use Aws\Result;
 use Doctrine\DBAL\Driver\ResultStatement;
 use Doctrine\DBAL\FetchMode;
+use Iterator;
+use IteratorAggregate;
+use PDO;
+use ReflectionClass;
+use ReflectionException;
+use RuntimeException;
 
-class RdsDataResult implements \IteratorAggregate, ResultStatement
+use function array_column;
+use function array_combine;
+use function array_map;
+use function count;
+use function current;
+use function func_get_args;
+use function is_array;
+use function iterator_to_array;
+use function next;
+
+class RdsDataResult implements IteratorAggregate, ResultStatement
 {
     /**
-     * @var Result
      * @see https://docs.aws.amazon.com/aws-sdk-php/v3/api/api-rds-data-2018-08-01.html#executestatement
      */
-    private $result;
+    private Result $result;
 
-    /**
-     * @var RdsDataConverter
-     */
-    private $dataConverter;
+    private RdsDataConverter $dataConverter;
 
-    /**
-     * @var array
-     */
-    private $fetchMode = [FetchMode::MIXED, null];
+    private array $fetchMode = [FetchMode::MIXED, null];
 
-    public function __construct(Result $result, RdsDataConverter $dataConverter = null)
+    public function __construct(Result $result, RdsDataConverter|null $dataConverter = null)
     {
         $this->result = $result;
         $this->dataConverter = $dataConverter ?? new RdsDataConverter();
@@ -37,12 +47,10 @@ class RdsDataResult implements \IteratorAggregate, ResultStatement
     public function setFetchMode($fetchMode, $arg2 = null, $arg3 = null): bool
     {
         $this->fetchMode = func_get_args();
+
         return true;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function columnCount(): int
     {
         return count($this->result['columnMetadata']);
@@ -51,14 +59,14 @@ class RdsDataResult implements \IteratorAggregate, ResultStatement
     /**
      * @inheritDoc
      */
-    public function fetch($fetchMode = null, $cursorOrientation = \PDO::FETCH_ORI_NEXT, $cursorOffset = 0)
+    public function fetch($fetchMode = null, $cursorOrientation = PDO::FETCH_ORI_NEXT, $cursorOffset = 0): mixed
     {
-        if ($cursorOrientation !== \PDO::FETCH_ORI_NEXT) {
-            throw new \RuntimeException("Cursor direction not implemented");
+        if ($cursorOrientation !== PDO::FETCH_ORI_NEXT) {
+            throw new RuntimeException('Cursor direction not implemented');
         }
 
         $result = current($this->result['records']);
-        if (!is_array($result)) {
+        if (! is_array($result)) {
             return $result;
         }
 
@@ -67,13 +75,14 @@ class RdsDataResult implements \IteratorAggregate, ResultStatement
 
         // advance the pointer and return
         next($this->result['records']);
+
         return $result;
     }
 
     /**
      * @inheritDoc
      */
-    public function fetchAll($fetchMode = null, $fetchArgument = null, $ctorArgs = null)
+    public function fetchAll($fetchMode = null, $fetchArgument = null, $ctorArgs = null): array
     {
         $previousFetchMode =  $this->fetchMode;
         if ($fetchMode !== null) {
@@ -89,10 +98,10 @@ class RdsDataResult implements \IteratorAggregate, ResultStatement
     /**
      * @inheritDoc
      */
-    public function fetchColumn($columnIndex = 0)
+    public function fetchColumn($columnIndex = 0): mixed
     {
         $row = $this->fetch(FetchMode::NUMERIC);
-        if (!is_array($row)) {
+        if (! is_array($row)) {
             return false;
         }
 
@@ -100,18 +109,15 @@ class RdsDataResult implements \IteratorAggregate, ResultStatement
     }
 
     /**
-     * @return \Iterator
+     * @return Iterator
      */
-    public function getIterator(): \Iterator
+    public function getIterator(): Iterator
     {
         while (($row = $this->fetch()) !== false) {
             yield $row;
         }
     }
 
-    /**
-     * @inheritDoc
-     */
     public function closeCursor(): bool
     {
         if (isset($this->result['records'])) {
@@ -138,15 +144,11 @@ class RdsDataResult implements \IteratorAggregate, ResultStatement
     }
 
     /**
-     * @param array $result
-     * @param int $fetchMode
-     * @param mixed $fetchArgument
-     * @param null|array $ctorArgs
-     *
      * @return array|object
+     *
      * @throws RdsDataException
      */
-    private function convertResultToFetchMode(array $result, int $fetchMode, $fetchArgument = null, $ctorArgs = null)
+    private function convertResultToFetchMode(array $result, int $fetchMode, mixed $fetchArgument = null, mixed $ctorArgs = null): mixed
     {
         $numResult = array_map([$this->dataConverter, 'convertToValue'], $result);
 
@@ -156,42 +158,44 @@ class RdsDataResult implements \IteratorAggregate, ResultStatement
 
             case FetchMode::ASSOCIATIVE:
                 $columnNames = array_column($this->result['columnMetadata'], 'label');
+
                 return array_combine($columnNames, $numResult);
 
             case FetchMode::MIXED:
                 $columnNames = array_column($this->result['columnMetadata'], 'label');
+
                 return $numResult + array_combine($columnNames, $numResult);
 
             case FetchMode::STANDARD_OBJECT:
                 $columnNames = array_column($this->result['columnMetadata'], 'label');
-                return (object)array_combine($columnNames, $numResult);
+
+                return (object) array_combine($columnNames, $numResult);
 
             case FetchMode::COLUMN:
                 return $numResult[$fetchArgument ?? 0];
 
             case FetchMode::CUSTOM_OBJECT:
                 try {
-                    $class = new \ReflectionClass($fetchArgument);
+                    $class = new ReflectionClass($fetchArgument);
                     $result = $class->newInstanceWithoutConstructor();
 
                     self::mapProperties($class, $result, $this->result['columnMetadata'], $numResult);
 
                     $constructor = $class->getConstructor();
                     if ($constructor !== null) {
-                        $constructor->invokeArgs($result, (array)$ctorArgs);
+                        $constructor->invokeArgs($result, (array) $ctorArgs);
                     }
 
                     return $result;
-                } catch (\ReflectionException $e) {
+                } catch (ReflectionException $e) {
                     throw new RdsDataException("could not fetch as class '$fetchArgument': {$e->getMessage()}", 0, $e);
                 }
-
             default:
-                throw new \RuntimeException("Fetch mode $fetchMode not supported");
+                throw new RuntimeException("Fetch mode $fetchMode not supported");
         }
     }
 
-    private static function mapProperties(\ReflectionClass $class, $result, array $metadata, array $numResult)
+    private static function mapProperties(ReflectionClass $class, object $result, array $metadata, array $numResult): void
     {
         foreach ($metadata as $columnIndex => ['label' => $columnName]) {
             if ($class->hasProperty($columnName)) {

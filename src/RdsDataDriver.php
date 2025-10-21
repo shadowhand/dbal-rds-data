@@ -1,7 +1,8 @@
 <?php
 
-namespace Nemo64\DbalRdsData;
+declare(strict_types=1);
 
+namespace Nemo64\DbalRdsData;
 
 use Aws\RDSDataService\RDSDataServiceClient;
 use Doctrine\DBAL\Connection;
@@ -38,7 +39,7 @@ class RdsDataDriver extends Driver\AbstractMySQLDriver
             new RDSDataServiceClient($options),
             $driverOptions['resourceArn'],
             $driverOptions['secretArn'],
-            $params['dbname'] ?? null
+            $params['dbname'] ?? null,
         );
 
         $connection->setPauseRetries($driverOptions['pauseRetries'] ?? 0);
@@ -47,15 +48,15 @@ class RdsDataDriver extends Driver\AbstractMySQLDriver
         return $connection;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getName(): string
     {
         return 'rds-data';
     }
 
-    public function convertException($message, DriverException $exception)
+    /**
+     * @inheritDoc
+     */
+    public function convertException($message, DriverException $exception): DBALException
     {
         switch ($exception->getErrorCode()) {
             case '6000':
@@ -66,7 +67,7 @@ class RdsDataDriver extends Driver\AbstractMySQLDriver
         }
     }
 
-    public function getDatabase(Connection $conn)
+    public function getDatabase(Connection $conn): string|null
     {
         $params = $conn->getParams();
         if (isset($params['dbname'])) {
@@ -74,7 +75,7 @@ class RdsDataDriver extends Driver\AbstractMySQLDriver
         }
 
         $connection = $conn->getWrappedConnection();
-        if (!$connection instanceof RdsDataConnection) {
+        if (! $connection instanceof RdsDataConnection) {
             return null;
         }
 

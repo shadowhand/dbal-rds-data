@@ -28,11 +28,12 @@
         }
     ],
     "require": {
-        "php": "~7.2||~8.0",
+        "php": "^8.3",
         "aws/aws-sdk-php": "^3.98",
         "doctrine/dbal": "^2.7"
     },
     "require-dev": {
+        "doctrine/coding-standard": "^14.0",
         "phpunit/phpunit": "^12.0"
     },
     "autoload": {
@@ -49,6 +50,9 @@
         "test": "phpunit tests"
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     }
 }

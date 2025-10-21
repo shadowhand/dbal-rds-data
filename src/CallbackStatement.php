@@ -1,8 +1,8 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Nemo64\DbalRdsData;
-
 
 use Doctrine\DBAL\Cache\ArrayStatement;
 use Doctrine\DBAL\Driver\Statement;
@@ -18,36 +18,45 @@ class CallbackStatement extends ArrayStatement implements Statement
     public function __construct(callable $callback)
     {
         parent::__construct([]);
+
         $this->callback = $callback;
     }
 
-
-    public function bindValue($param, $value, $type = ParameterType::STRING)
+    /**
+     * @inheritDoc
+     */
+    public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
         return false;
     }
 
-    public function bindParam($column, &$variable, $type = ParameterType::STRING, $length = null)
+    /**
+     * @inheritDoc
+     */
+    public function bindParam($param, &$variable, $type = ParameterType::STRING, $length = null): bool
     {
         return false;
     }
 
-    public function errorCode()
+    public function errorCode(): mixed
     {
         return false;
     }
 
-    public function errorInfo()
+    public function errorInfo(): array
     {
         return [];
     }
 
-    public function execute($params = null)
+    /**
+     * @inheritDoc
+     */
+    public function execute($params = null): bool
     {
         return ($this->callback)() ?? true;
     }
 
-    public function rowCount()
+    public function rowCount(): int
     {
         return 0;
     }

@@ -1,11 +1,15 @@
 <?php
 
-namespace Nemo64\DbalRdsData\Tests;
+declare(strict_types=1);
 
+namespace Nemo64\DbalRdsData\Tests;
 
 use Doctrine\DBAL\FetchMode;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+
+use function base64_encode;
+use function sprintf;
 
 class RdsDataConnectionTest extends TestCase
 {
@@ -16,7 +20,7 @@ class RdsDataConnectionTest extends TestCase
         $this->createRdsDataServiceClient();
     }
 
-    public function testSimpleQuery()
+    public function testSimpleQuery(): void
     {
         $this->addClientCall(
             'executeStatement',
@@ -31,16 +35,16 @@ class RdsDataConnectionTest extends TestCase
                 'sql' => 'SELECT * FROM table',
             ],
             [
-                "columnMetadata" => [
-                    ["label" => "id"],
+                'columnMetadata' => [
+                    ['label' => 'id'],
                 ],
-                "numberOfRecordsUpdated" => 0,
-                "records" => [
+                'numberOfRecordsUpdated' => 0,
+                'records' => [
                     [
-                        ["longValue" => 1],
+                        ['longValue' => 1],
                     ],
                 ],
-            ]
+            ],
         );
 
         $statement = $this->connection->query('SELECT * FROM table');
@@ -48,7 +52,7 @@ class RdsDataConnectionTest extends TestCase
         $this->assertFalse($statement->fetch(FetchMode::ASSOCIATIVE));
     }
 
-    public function testTransaction()
+    public function testTransaction(): void
     {
         $this->addClientCall(
             'beginTransaction',
@@ -57,7 +61,7 @@ class RdsDataConnectionTest extends TestCase
                 'secretArn' => 'arn:secret',
                 'database' => 'db',
             ],
-            ['transactionId' => '~~transaction id~~']
+            ['transactionId' => '~~transaction id~~'],
         );
         $this->assertTrue($this->connection->beginTransaction());
         $this->assertEquals('~~transaction id~~', $this->connection->getTransactionId());
@@ -76,16 +80,16 @@ class RdsDataConnectionTest extends TestCase
                 'transactionId' => $this->connection->getTransactionId(),
             ],
             [
-                "columnMetadata" => [
-                    ["label" => "id"],
+                'columnMetadata' => [
+                    ['label' => 'id'],
                 ],
-                "numberOfRecordsUpdated" => 0,
-                "records" => [
+                'numberOfRecordsUpdated' => 0,
+                'records' => [
                     [
-                        ["longValue" => 1],
+                        ['longValue' => 1],
                     ],
                 ],
-            ]
+            ],
         );
         $statement = $this->connection->query('SELECT * FROM table');
         $this->assertEquals(['id' => 1], $statement->fetch(FetchMode::ASSOCIATIVE));
@@ -100,14 +104,14 @@ class RdsDataConnectionTest extends TestCase
                 'secretArn' => 'arn:secret',
                 'transactionId' => '~~transaction id~~',
             ],
-            ['transactionStatus' => 'cleaning up']
+            ['transactionStatus' => 'cleaning up'],
         );
         $this->assertTrue($this->connection->commit());
         $this->assertFalse($this->connection->commit());
         $this->assertFalse($this->connection->rollBack());
     }
 
-    public function testRollBack()
+    public function testRollBack(): void
     {
         $this->addClientCall(
             'beginTransaction',
@@ -116,7 +120,7 @@ class RdsDataConnectionTest extends TestCase
                 'secretArn' => 'arn:secret',
                 'database' => 'db',
             ],
-            ['transactionId' => '~~transaction id~~']
+            ['transactionId' => '~~transaction id~~'],
         );
         $this->assertTrue($this->connection->beginTransaction());
         $this->assertEquals('~~transaction id~~', $this->connection->getTransactionId());
@@ -129,14 +133,14 @@ class RdsDataConnectionTest extends TestCase
                 'secretArn' => 'arn:secret',
                 'transactionId' => '~~transaction id~~',
             ],
-            ['transactionStatus' => 'cleaning up']
+            ['transactionStatus' => 'cleaning up'],
         );
         $this->assertTrue($this->connection->rollBack());
         $this->assertFalse($this->connection->rollBack());
         $this->assertFalse($this->connection->commit());
     }
 
-    public function testUpdate()
+    public function testUpdate(): void
     {
         $this->addClientCall(
             'executeStatement',
@@ -152,14 +156,14 @@ class RdsDataConnectionTest extends TestCase
             ],
             [
                 'numberOfRecordsUpdated' => 5,
-            ]
+            ],
         );
 
         $rowCount = $this->connection->exec('UPDATE foobar SET value = 1');
         $this->assertEquals(5, $rowCount);
     }
 
-    public function testParameters()
+    public function testParameters(): void
     {
         $this->addClientCall(
             'executeStatement',
@@ -177,7 +181,7 @@ class RdsDataConnectionTest extends TestCase
             ],
             [
                 'numberOfRecordsUpdated' => 5,
-            ]
+            ],
         );
 
         $statement = $this->connection->prepare('UPDATE foobar SET value = ?');
@@ -186,7 +190,7 @@ class RdsDataConnectionTest extends TestCase
         $this->assertEquals(5, $statement->rowCount());
     }
 
-    public static function quoteValues()
+    public static function quoteValues(): array
     {
         return [
             ['foobar', "'foobar'"],
@@ -196,12 +200,12 @@ class RdsDataConnectionTest extends TestCase
     }
 
     #[DataProvider('quoteValues')]
-    public function testQuote($value, $expectation)
+    public function testQuote(string $value, string $expectation): void
     {
         $this->assertEquals($expectation, $this->connection->quote($value));
     }
 
-    public function testInsert()
+    public function testInsert(): void
     {
         $this->addClientCall(
             'executeStatement',
@@ -220,9 +224,9 @@ class RdsDataConnectionTest extends TestCase
             [
                 'numberOfRecordsUpdated' => 1,
                 'generatedFields' => [
-                    ['longValue' => 5]
-                ]
-            ]
+                    ['longValue' => 5],
+                ],
+            ],
         );
 
         $statement = $this->connection->prepare('INSERT INTO foobar SET value = ?');
@@ -231,7 +235,7 @@ class RdsDataConnectionTest extends TestCase
         $this->assertEquals(5, $this->connection->lastInsertId());
     }
 
-    public static function databaseUseStatements()
+    public static function databaseUseStatements(): array
     {
         return [
             ['foobar', 'use foobar'],
@@ -244,7 +248,7 @@ class RdsDataConnectionTest extends TestCase
     }
 
     #[DataProvider('databaseUseStatements')]
-    public function testUseDatabase($dbname, $useStatement)
+    public function testUseDatabase(string $dbname, string $useStatement): void
     {
         $this->assertEquals('db', $this->connection->getDatabase());
         $statement = $this->connection->prepare($useStatement);

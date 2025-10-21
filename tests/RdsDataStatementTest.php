@@ -1,11 +1,14 @@
 <?php
 
-namespace Nemo64\DbalRdsData\Tests;
+declare(strict_types=1);
 
+namespace Nemo64\DbalRdsData\Tests;
 
 use Doctrine\DBAL\FetchMode;
 use Nemo64\DbalRdsData\RdsDataStatement;
 use PHPUnit\Framework\TestCase;
+
+use function range;
 
 class RdsDataStatementTest extends TestCase
 {
@@ -16,7 +19,7 @@ class RdsDataStatementTest extends TestCase
         $this->createRdsDataServiceClient();
     }
 
-    public function testRetainFetchMode()
+    public function testRetainFetchMode(): void
     {
         foreach (range(1, 2) as $item) {
             $this->addClientCall(
@@ -32,16 +35,16 @@ class RdsDataStatementTest extends TestCase
                     'sql' => 'SELECT 1 AS id',
                 ],
                 [
-                    "columnMetadata" => [
-                        ["label" => "id"],
+                    'columnMetadata' => [
+                        ['label' => 'id'],
                     ],
-                    "numberOfRecordsUpdated" => 0,
-                    "records" => [
+                    'numberOfRecordsUpdated' => 0,
+                    'records' => [
                         [
-                            ["longValue" => 1],
+                            ['longValue' => 1],
                         ],
                     ],
-                ]
+                ],
             );
         }
 

@@ -1,7 +1,8 @@
 <?php
 
-namespace Nemo64\DbalRdsData\Tests;
+declare(strict_types=1);
 
+namespace Nemo64\DbalRdsData\Tests;
 
 use Doctrine\DBAL\Exception\ConnectionException;
 use Doctrine\DBAL\Exception\DriverException;
@@ -16,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 
 class RdsDataExceptionTest extends TestCase
 {
-    public static function messages()
+    public static function messages(): array
     {
         return [
             [
@@ -30,23 +31,23 @@ class RdsDataExceptionTest extends TestCase
                 UniqueConstraintViolationException::class,
             ],
             [
-                "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use",
+                'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use',
                 1149,
                 SyntaxErrorException::class,
             ],
             [
-                "Cannot truncate a table referenced in a foreign key constraint (foobar)",
+                'Cannot truncate a table referenced in a foreign key constraint (foobar)',
                 1701,
                 ForeignKeyConstraintViolationException::class,
             ],
             [
                 "Communications link failure\n\n"
-                . "The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.",
+                . 'The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.',
                 6000,
                 ConnectionException::class,
             ],
             [
-                "Some never before seen of error",
+                'Some never before seen of error',
                 null,
                 DriverException::class,
             ],
@@ -54,7 +55,7 @@ class RdsDataExceptionTest extends TestCase
     }
 
     #[DataProvider('messages')]
-    public function testMessageParsing($message, $expectedCode, $expectedException)
+    public function testMessageParsing(string $message, int|null $expectedCode, string $expectedException): void
     {
         $exception = RdsDataException::interpretErrorMessage($message);
         $this->assertEquals($expectedCode, $exception->getErrorCode());

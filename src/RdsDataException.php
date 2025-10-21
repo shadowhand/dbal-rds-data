@@ -1,13 +1,14 @@
 <?php
 
-namespace Nemo64\DbalRdsData;
+declare(strict_types=1);
 
+namespace Nemo64\DbalRdsData;
 
 use Doctrine\DBAL\Driver\AbstractDriverException;
 
+use function preg_match;
+
 /**
- * Class RdsDataException
- *
  * The rds data api does only provide the error message, not the error code.
  * This exception fixes this by extracting the error code from the message.
  *
@@ -46,10 +47,10 @@ class RdsDataException extends AbstractDriverException
      * @see https://dev.mysql.com/doc/refman/5.6/en/server-error-reference.html
      * @see \Doctrine\DBAL\Driver\AbstractMySQLDriver::convertException
      */
-    private const EXPRESSION = "#^"
+    private const string EXPRESSION = '#^'
     . "((*:1044)Access denied for user '.*'@'.*' to database '.*'"
     . "|(*:1045)Access denied for user '.*'@'.*' \\(using password\\: .*\\)"
-    . "|(*:1046)No database selected"
+    . '|(*:1046)No database selected'
     . "|(*:1048)Column '.*' cannot be null"
     . "|(*:1049)Unknown database '.*'"
     . "|(*:1050)Table '.*' already exists"
@@ -59,22 +60,22 @@ class RdsDataException extends AbstractDriverException
     . "|(*:1060)Duplicate column name '.*'"
     . "|(*:1062)Duplicate entry '.*' for key .*"
     . "|(*:1064).* near '.*' at line .*"
-    . "|(*:1095)You are not owner of thread .*"
+    . '|(*:1095)You are not owner of thread .*'
     . "|(*:1110)Column '.*' specified twice"
     . "|(*:1121)Table handler doesn't support NULL in given index\\. Please change column '.*' to be NOT NULL or use another handler"
-    . "|(*:1138)Invalid use of NULL value"
+    . '|(*:1138)Invalid use of NULL value'
     . "|(*:1142).* command denied to user '.*'@'.*' for table '.*'"
     . "|(*:1143).* command denied to user '.*'@'.*' for column '.*' in table '.*'"
     . "|(*:1146)Table '.*\\..*' doesn't exist"
-    . "|(*:1149)You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use"
+    . '|(*:1149)You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use'
     . "|(*:1166)Incorrect column name '.*'"
-    . "|(*:1171)All parts of a PRIMARY KEY must be NOT NULL; if you need NULL in a key, use UNIQUE instead"
-    . "|(*:1205)Lock wait timeout exceeded; try restarting transaction"
-    . "|(*:1213)Deadlock found when trying to get lock; try restarting transaction"
-    . "|(*:1216)Cannot add or update a child row\\: a foreign key constraint fails"
-    . "|(*:1217)Cannot delete or update a parent row\\: a foreign key constraint fails"
-    . "|(*:1227)Access denied; you need \\(at least one of\\) the .* privilege\\(s\\) for this operation"
-    . "|(*:1252)All parts of a SPATIAL index must be NOT NULL"
+    . '|(*:1171)All parts of a PRIMARY KEY must be NOT NULL; if you need NULL in a key, use UNIQUE instead'
+    . '|(*:1205)Lock wait timeout exceeded; try restarting transaction'
+    . '|(*:1213)Deadlock found when trying to get lock; try restarting transaction'
+    . '|(*:1216)Cannot add or update a child row\\: a foreign key constraint fails'
+    . '|(*:1217)Cannot delete or update a parent row\\: a foreign key constraint fails'
+    . '|(*:1227)Access denied; you need \\(at least one of\\) the .* privilege\\(s\\) for this operation'
+    . '|(*:1252)All parts of a SPATIAL index must be NOT NULL'
     . "|(*:1263)Column set to default value; NULL supplied to NOT NULL column '.*' at row .*"
     . "|(*:1287)'.*' is deprecated and will be removed in a future release\\. Please use .* instead"
     . "|(*:1341)Malformed file type header in file '.*'"
@@ -84,25 +85,25 @@ class RdsDataException extends AbstractDriverException
     . "|(*:1364)Field '.*' doesn't have a default value"
     . "|(*:1370).* command denied to user '.*'@'.*' for routine '.*'"
     . "|(*:1382)The '.*' syntax is reserved for purposes internal to the MySQL server"
-    . "|(*:1429)Unable to connect to foreign data source\\: .*"
-    . "|(*:1451)Cannot delete or update a parent row\\: a foreign key constraint fails \\(.*\\)"
-    . "|(*:1452)Cannot add or update a child row\\: a foreign key constraint fails \\(.*\\)"
-    . "|(*:1479)Syntax error\\: .* PARTITIONING requires definition of VALUES .* for each partition"
-    . "|(*:1541)Failed to drop .*"
+    . '|(*:1429)Unable to connect to foreign data source\\: .*'
+    . '|(*:1451)Cannot delete or update a parent row\\: a foreign key constraint fails \\(.*\\)'
+    . '|(*:1452)Cannot add or update a child row\\: a foreign key constraint fails \\(.*\\)'
+    . '|(*:1479)Syntax error\\: .* PARTITIONING requires definition of VALUES .* for each partition'
+    . '|(*:1541)Failed to drop .*'
     . "|(*:1554)The syntax '.*' is deprecated and will be removed in MySQL .*\\. Please use .* instead"
     . "|(*:1557)Upholding foreign key constraints for table '.*', entry '.*', key .* would lead to a duplicate entry"
-    . "|(*:1566)Not allowed to use NULL value in VALUES LESS THAN"
+    . '|(*:1566)Not allowed to use NULL value in VALUES LESS THAN'
     . "|(*:1569)ALTER TABLE causes auto_increment resequencing, resulting in duplicate entry '.*' for key '.*'"
     . "|(*:1586)Duplicate entry '.*' for key '.*'"
-    . "|(*:1611)Invalid column reference \\(.*\\) in LOAD DATA"
-    . "|(*:1626)Error in parsing conflict function\\. Message\\: .*"
-    . "|(*:1701)Cannot truncate a table referenced in a foreign key constraint \\(.*\\)"
+    . '|(*:1611)Invalid column reference \\(.*\\) in LOAD DATA'
+    . '|(*:1626)Error in parsing conflict function\\. Message\\: .*'
+    . '|(*:1701)Cannot truncate a table referenced in a foreign key constraint \\(.*\\)'
 
     // this error is custom and specific to aurora serverless proxies
     // I decided to use 6xxx error codes for proxy errors since server errors are 1xxx and client errors 2xxx
-    . "|(*:6000)Communications link failure.*"
+    . '|(*:6000)Communications link failure.*'
 
-    . ")$#s"; // note the PCRE_DOTALL modifier
+    . ')$#s'; // note the PCRE_DOTALL modifier
 
     public static function interpretErrorMessage(string $message): self
     {

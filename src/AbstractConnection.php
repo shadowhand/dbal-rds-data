@@ -1,11 +1,20 @@
 <?php
 
-namespace Nemo64\DbalRdsData;
+declare(strict_types=1);
 
+namespace Nemo64\DbalRdsData;
 
 use Doctrine\DBAL\Driver\Connection;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
+use Exception;
+
+use function addslashes;
+use function base64_encode;
+use function func_get_args;
+use function mb_detect_encoding;
+use function reset;
+use function sprintf;
 
 /**
  * Keep some filler methods away from the main implementation to make it simpler
@@ -15,7 +24,7 @@ abstract class AbstractConnection implements Connection
     /**
      * @inheritDoc
      */
-    public function quote($input, $type = ParameterType::STRING)
+    public function quote($input, $type = ParameterType::STRING): string
     {
         // If the input isn't ASCII then I'm not even gonna try escaping it because of possible multibyte attacks.
         // I just encode the input as base64 and let mysql decode it again.
@@ -28,9 +37,6 @@ abstract class AbstractConnection implements Connection
         return sprintf("'%s'", addslashes($input));
     }
 
-    /**
-     * @inheritDoc
-     */
     public function query(): Statement
     {
         $args = func_get_args();
@@ -42,8 +48,9 @@ abstract class AbstractConnection implements Connection
     }
 
     /**
-     * @inheritDoc
      * @see https://docs.aws.amazon.com/rdsdataservice/latest/APIReference/API_ExecuteStatement.html
+     *
+     * @inheritDoc
      */
     public function exec($statement): int
     {
@@ -51,11 +58,11 @@ abstract class AbstractConnection implements Connection
         $success = $stmt->execute();
 
         $errorInfo = $stmt->errorInfo();
-        if (!empty($errorInfo)) {
-            throw new \Exception(reset($errorInfo), $stmt->errorCode());
+        if (! empty($errorInfo)) {
+            throw new Exception(reset($errorInfo), $stmt->errorCode());
         }
 
-        if (!$success) {
+        if (! $success) {
             return 0;
         }
 

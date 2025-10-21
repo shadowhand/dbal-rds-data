@@ -1,72 +1,76 @@
 <?php
 
-namespace Nemo64\DbalRdsData\Tests;
+declare(strict_types=1);
 
+namespace Nemo64\DbalRdsData\Tests;
 
 use Nemo64\DbalRdsData\RdsDataParameterBag;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+use function implode;
+use function range;
+
 class RdsDataParameterBagTest extends TestCase
 {
-    public static function sqlPreparation()
+    public static function sqlPreparation(): array
     {
         return [
             [
                 [0 => 1],
                 'SELECT * FROM x WHERE y = ?',
-                'SELECT * FROM x WHERE y = :0'
+                'SELECT * FROM x WHERE y = :0',
             ],
             [
                 [1 => 1],
                 'SELECT * FROM x WHERE y = ?',
-                'SELECT * FROM x WHERE y = :1'
+                'SELECT * FROM x WHERE y = :1',
             ],
             [
                 [1 => 1],
                 "SELECT * FROM x WHERE x = '?' AND y = ?",
-                "SELECT * FROM x WHERE x = '?' AND y = :1"
+                "SELECT * FROM x WHERE x = '?' AND y = :1",
             ],
             [
                 [1 => 1],
                 "SELECT * FROM x WHERE x = ? AND y = '?'",
-                "SELECT * FROM x WHERE x = :1 AND y = '?'"
+                "SELECT * FROM x WHERE x = :1 AND y = '?'",
             ],
             [
                 [1 => 1],
-                "SELECT * FROM x WHERE x = ? AND y = `?`",
-                "SELECT * FROM x WHERE x = :1 AND y = `?`"
+                'SELECT * FROM x WHERE x = ? AND y = `?`',
+                'SELECT * FROM x WHERE x = :1 AND y = `?`',
             ],
             [
                 [1 => 1],
                 'SELECT * FROM x WHERE x = ? AND y = "?"',
-                'SELECT * FROM x WHERE x = :1 AND y = "?"'
+                'SELECT * FROM x WHERE x = :1 AND y = "?"',
             ],
             [
                 [1 => 1],
                 "SELECT * FROM x WHERE x = ? AND y = '\\'?'",
-                "SELECT * FROM x WHERE x = :1 AND y = '\\'?'"
+                "SELECT * FROM x WHERE x = :1 AND y = '\\'?'",
             ],
             [
                 [1 => 1],
                 "SELECT * FROM x WHERE x = '\\\\' AND y = ? AND z = '\\\\'",
-                "SELECT * FROM x WHERE x = '\\\\' AND y = :1 AND z = '\\\\'"
+                "SELECT * FROM x WHERE x = '\\\\' AND y = :1 AND z = '\\\\'",
             ],
             [
                 ['foo' => 1],
                 'SELECT * FROM x WHERE x = ? AND y = "?"',
-                'SELECT * FROM x WHERE x = ? AND y = "?"'
+                'SELECT * FROM x WHERE x = ? AND y = "?"',
             ],
             [
                 [1 => 1],
                 'SELECT * FROM x WHERE x = ? AND y IN (' . implode(',', range(0, 1500)) . ')',
-                'SELECT * FROM x WHERE x = :1 AND y IN (' . implode(',', range(0, 1500)) . ')'
+                'SELECT * FROM x WHERE x = :1 AND y IN (' . implode(',', range(0, 1500)) . ')',
             ],
         ];
     }
 
     #[DataProvider('sqlPreparation')]
-    public function testPrepareSqlStatement(array $parameters, string $sql, string $expected)
+    public function testPrepareSqlStatement(array $parameters, string $sql, string $expected): void
     {
         $parameterBag = new RdsDataParameterBag();
         foreach ($parameters as $key => $value) {
@@ -76,7 +80,7 @@ class RdsDataParameterBagTest extends TestCase
         $this->assertEquals($expected, $parameterBag->prepareSqlStatement($sql));
     }
 
-    public function testBind()
+    public function testBind(): void
     {
         $parameterBag = new RdsDataParameterBag();
 
@@ -96,7 +100,7 @@ class RdsDataParameterBagTest extends TestCase
         $this->assertEquals('a', $finalParameters[1]['value']['stringValue']);
     }
 
-    public function testBindDelete()
+    public function testBindDelete(): void
     {
         $parameterBag = new RdsDataParameterBag();
 

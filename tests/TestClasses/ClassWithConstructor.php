@@ -1,17 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Nemo64\DbalRdsData\Tests\TestClasses;
 
+use function func_get_args;
 
 class ClassWithConstructor
 {
-    protected $col1;
+    protected string $col1 = '';
 
-    private $col2;
+    private string $col2 = '';
 
-    public $dataDuringConstruct;
+    public array $dataDuringConstruct;
 
-    public $dataPassedToConstructor;
+    public array $dataPassedToConstructor;
 
     public function __construct()
     {
@@ -19,7 +22,7 @@ class ClassWithConstructor
         $this->dataPassedToConstructor = func_get_args();
     }
 
-    public function set($col1, $col2)
+    public function set(mixed $col1, mixed $col2): void
     {
         $this->col1 = $col1;
         $this->col2 = $col2;
