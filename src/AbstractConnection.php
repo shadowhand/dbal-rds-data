@@ -46,9 +46,9 @@ abstract class AbstractConnection implements Connection
      *
      * @inheritDoc
      */
-    public function exec($statement): int
+    public function exec(string $sql): int|string
     {
-        $stmt = $this->prepare($statement);
+        $stmt = $this->prepare($sql);
         $result = $stmt->execute();
 
         return $result->rowCount();

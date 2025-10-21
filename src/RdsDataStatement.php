@@ -8,7 +8,6 @@ use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
 
-use function is_iterable;
 use function preg_match;
 use function reset;
 
@@ -40,17 +39,9 @@ class RdsDataStatement implements Statement
     /**
      * @inheritDoc
      */
-    public function bindParam($param, &$variable, $type = ParameterType::STRING, $length = null): bool
+    public function bindValue(string|int $param, mixed $value, ParameterType $type): void
     {
-        return $this->parameterBag->bindParam($param, $variable, $type, $length);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function bindValue($param, $value, $type = ParameterType::STRING): bool
-    {
-        return $this->parameterBag->bindValue($param, $value, $type);
+        $this->parameterBag->bindValue($param, $value, $type);
     }
 
     /**
@@ -88,14 +79,8 @@ class RdsDataStatement implements Statement
      *
      * @inheritDoc
      */
-    public function execute($params = null): Result
+    public function execute(): Result
     {
-        if (is_iterable($params)) {
-            foreach ($params as $paramKey => $paramValue) {
-                $this->bindValue($paramKey, $paramValue);
-            }
-        }
-
         $args = [
             'continueAfterTimeout' => preg_match(self::DDL_REGEX, $this->sql) > 0,
             'database' => $this->connection->getDatabase(),

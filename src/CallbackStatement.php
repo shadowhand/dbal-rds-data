@@ -23,17 +23,9 @@ class CallbackStatement implements Statement
     /**
      * @inheritDoc
      */
-    public function bindValue($param, $value, $type = ParameterType::STRING): bool
+    public function bindValue(string|int $param, mixed $value, ParameterType $type): void
     {
-        return false;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function bindParam($param, &$variable, $type = ParameterType::STRING, $length = null): bool
-    {
-        return false;
+        // No-op for callback statements
     }
 
     public function errorCode(): mixed
@@ -49,7 +41,7 @@ class CallbackStatement implements Statement
     /**
      * @inheritDoc
      */
-    public function execute($params = null): Result
+    public function execute(): Result
     {
         ($this->callback)();
 

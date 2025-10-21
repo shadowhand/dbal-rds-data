@@ -63,7 +63,7 @@ class RdsDataConnectionTest extends TestCase
             ],
             ['transactionId' => '~~transaction id~~'],
         );
-        $this->assertTrue($this->connection->beginTransaction());
+        $this->connection->beginTransaction();
         $this->assertEquals('~~transaction id~~', $this->connection->getTransactionId());
 
         $this->addClientCall(
@@ -95,7 +95,6 @@ class RdsDataConnectionTest extends TestCase
         $this->assertEquals(['id' => 1], $result->fetchAssociative());
         $this->assertFalse($result->fetchAssociative());
 
-        $this->assertFalse($this->connection->beginTransaction());
 
         $this->addClientCall(
             'commitTransaction',
@@ -106,9 +105,12 @@ class RdsDataConnectionTest extends TestCase
             ],
             ['transactionStatus' => 'cleaning up'],
         );
-        $this->assertTrue($this->connection->commit());
-        $this->assertFalse($this->connection->commit());
-        $this->assertFalse($this->connection->rollBack());
+        $this->connection->commit();
+        $this->assertNull($this->connection->getTransactionId());
+
+        // Multiple commits/rollbacks after transaction is already closed should be no-ops
+        $this->connection->commit();
+        $this->connection->rollBack();
     }
 
     public function testRollBack(): void
@@ -122,9 +124,26 @@ class RdsDataConnectionTest extends TestCase
             ],
             ['transactionId' => '~~transaction id~~'],
         );
-        $this->assertTrue($this->connection->beginTransaction());
+        $this->connection->beginTransaction();
         $this->assertEquals('~~transaction id~~', $this->connection->getTransactionId());
-        $this->assertFalse($this->connection->beginTransaction());
+
+        // Trying to begin a transaction when one is already started should throw
+        $this->expectException(\LogicException::class);
+        $this->connection->beginTransaction();
+    }
+
+    public function testRollBackCompletesTransaction(): void
+    {
+        $this->addClientCall(
+            'beginTransaction',
+            [
+                'resourceArn' => 'arn:resource',
+                'secretArn' => 'arn:secret',
+                'database' => 'db',
+            ],
+            ['transactionId' => '~~transaction id~~'],
+        );
+        $this->connection->beginTransaction();
 
         $this->addClientCall(
             'rollbackTransaction',
@@ -135,9 +154,12 @@ class RdsDataConnectionTest extends TestCase
             ],
             ['transactionStatus' => 'cleaning up'],
         );
-        $this->assertTrue($this->connection->rollBack());
-        $this->assertFalse($this->connection->rollBack());
-        $this->assertFalse($this->connection->commit());
+        $this->connection->rollBack();
+        $this->assertNull($this->connection->getTransactionId());
+
+        // Multiple rollbacks/commits after transaction is already closed should be no-ops
+        $this->connection->rollBack();
+        $this->connection->commit();
     }
 
     public function testUpdate(): void
@@ -185,7 +207,7 @@ class RdsDataConnectionTest extends TestCase
         );
 
         $statement = $this->connection->prepare('UPDATE foobar SET value = ?');
-        $statement->bindValue(0, 5);
+        $statement->bindValue(0, 5, \Doctrine\DBAL\ParameterType::STRING);
         $result = $statement->execute();
         $this->assertEquals(5, $result->rowCount());
     }
@@ -230,9 +252,10 @@ class RdsDataConnectionTest extends TestCase
         );
 
         $statement = $this->connection->prepare('INSERT INTO foobar SET value = ?');
-        $result = $statement->execute([5]);
+        $statement->bindValue(0, 5, \Doctrine\DBAL\ParameterType::STRING);
+        $result = $statement->execute();
         $this->assertEquals(1, $result->rowCount());
-        $this->assertEquals(5, $this->connection->lastInsertId());
+        $this->assertEquals('5', $this->connection->lastInsertId());
     }
 
     public static function databaseUseStatements(): array

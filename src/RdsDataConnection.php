@@ -35,7 +35,11 @@ class RdsDataConnection extends AbstractConnection
     {
         // Since this connection is actually connectionless,
         // I want to make sure that transactions aren't left to time out after a request.
-        $this->rollBack();
+        try {
+            $this->rollBack();
+        } catch (\Throwable $e) {
+            // Silently ignore errors during cleanup
+        }
     }
 
     /**
@@ -66,8 +70,12 @@ class RdsDataConnection extends AbstractConnection
     /**
      * @inheritDoc
      */
-    public function lastInsertId($name = null): string
+    public function lastInsertId(): string|int
     {
+        if ($this->lastInsertedId === null) {
+            throw new \LogicException('No last insert ID available');
+        }
+
         return $this->lastInsertedId;
     }
 
@@ -78,10 +86,10 @@ class RdsDataConnection extends AbstractConnection
      *
      * @inheritDoc
      */
-    public function beginTransaction(): bool
+    public function beginTransaction(): void
     {
         if ($this->transactionId !== null) {
-            return false;
+            throw new \LogicException('Transaction already started');
         }
 
         $args = [
@@ -92,8 +100,6 @@ class RdsDataConnection extends AbstractConnection
 
         $response = $this->call('beginTransaction', $args);
         $this->transactionId = $response['transactionId'];
-
-        return true;
     }
 
     /**
@@ -103,10 +109,10 @@ class RdsDataConnection extends AbstractConnection
      *
      * @inheritDoc
      */
-    public function commit(): bool
+    public function commit(): void
     {
         if ($this->transactionId === null) {
-            return false;
+            return;
         }
 
         $args = [
@@ -117,8 +123,6 @@ class RdsDataConnection extends AbstractConnection
 
         $this->call('commitTransaction', $args);
         $this->transactionId = null;
-
-        return true;
     }
 
     /**
@@ -128,10 +132,10 @@ class RdsDataConnection extends AbstractConnection
      *
      * @inheritDoc
      */
-    public function rollBack(): bool
+    public function rollBack(): void
     {
         if ($this->transactionId === null) {
-            return false;
+            return;
         }
 
         $args = [
@@ -142,8 +146,6 @@ class RdsDataConnection extends AbstractConnection
 
         $this->call('rollbackTransaction', $args);
         $this->transactionId = null;
-
-        return true;
     }
 
     public function errorCode(): string|null
@@ -175,6 +177,13 @@ class RdsDataConnection extends AbstractConnection
     public function getNativeConnection(): RDSDataServiceClient
     {
         return $this->client;
+    }
+
+    public function getServerVersion(): string
+    {
+        // RDS Data API doesn't provide direct server version access
+        // Return a reasonable default for MySQL 8.0 (common Aurora version)
+        return '8.0.0';
     }
 
     public function getResourceArn(): string

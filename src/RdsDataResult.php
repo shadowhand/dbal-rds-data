@@ -105,6 +105,16 @@ class RdsDataResult implements IteratorAggregate, Result
         return count($this->result['columnMetadata']);
     }
 
+    public function getColumnName(int $index): string
+    {
+        $columnMetadata = $this->result['columnMetadata'] ?? [];
+        if ($index < 0 || $index >= count($columnMetadata)) {
+            throw new \OutOfBoundsException("Invalid column index: $index");
+        }
+
+        return $columnMetadata[$index]['label'] ?? '';
+    }
+
     /**
      * @return Iterator
      */

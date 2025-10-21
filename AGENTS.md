@@ -43,10 +43,11 @@ This driver bridges the gap between Doctrine DBAL (a database abstraction layer 
 - Delegates result handling to `RdsDataResult`
 
 #### 4. **RdsDataResult** (`src/RdsDataResult.php`)
-- Implements DBAL's `ResultStatement` interface
+- Implements DBAL's `Result` interface
 - Converts AWS RDS Data API results to standard PHP data structures
-- Supports multiple fetch modes (associative, numeric, objects, etc.)
+- Supports multiple fetch methods (fetchAssociative, fetchNumeric, fetchOne, etc.)
 - Handles column metadata and row iteration
+- Provides `getColumnName()` for column name retrieval by index
 
 #### 5. **RdsDataParameterBag** (`src/RdsDataParameterBag.php`)
 - Manages SQL parameter binding
@@ -209,7 +210,7 @@ tests/
 ### Production
 - **PHP**: ^8.3
 - **aws/aws-sdk-php**: ^3.98 (RDS Data Service client)
-- **doctrine/dbal**: ^2.7 (Database abstraction layer)
+- **doctrine/dbal**: ^4.0 (Database abstraction layer)
 
 ### Development
 - **phpunit/phpunit**: ^12.0 (Testing framework)
@@ -225,21 +226,13 @@ tests/
 6. **Timeout**: Maximum 45-second query execution (DDL can continue via `continueAfterTimeout`)
 7. **Cold Start**: Paused databases take 30s-2min to resume
 
-## Recent Changes
-
-### PHP 8.3 Update (Current Branch: update-php-83)
-- Added return types to all methods and functions across the codebase
-- Updated to PHPUnit 12.x
-- Added type safety with strict typing
-- Fixed type compatibility issues (e.g., int → string casting for last insert ID)
-
 ## Contributing Guidelines
 
 1. **Code Style**: Follow Doctrine coding standards
 2. **Testing**: All new features must include tests
 3. **Type Safety**: Use strict types and proper return type declarations
 4. **Documentation**: Update README.md and this file for significant changes
-5. **Backward Compatibility**: Maintain compatibility with Doctrine DBAL 2.7+
+5. **Backward Compatibility**: Maintain compatibility with Doctrine DBAL 4.0+
 
 ## Useful Commands
 
@@ -297,7 +290,7 @@ $client = new RDSDataServiceClient([
 
 ```php
 $dbalConnection = DriverManager::getConnection($params);
-$awsClient = $dbalConnection->getWrappedConnection()->getClient();
+$awsClient = $dbalConnection->getNativeConnection()->getClient();
 // Use $awsClient for direct AWS API calls
 ```
 

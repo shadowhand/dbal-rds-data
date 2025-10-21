@@ -28,7 +28,7 @@ class RdsDataConverterTest extends TestCase
     }
 
     #[DataProvider('data')]
-    public function testConvertToValue(array $json, mixed $php, int $type): void
+    public function testConvertToValue(array $json, mixed $php, ParameterType $type): void
     {
         $converter = new RdsDataConverter();
         $convertedValue = $converter->convertToValue($json);
@@ -36,7 +36,7 @@ class RdsDataConverterTest extends TestCase
     }
 
     #[DataProvider('data')]
-    public function testConvertToJson(array $json, mixed $php, int $type): void
+    public function testConvertToJson(array $json, mixed $php, ParameterType $type): void
     {
         $converter = new RdsDataConverter();
         $this->assertEquals($json, $converter->convertToJson($php, $type));

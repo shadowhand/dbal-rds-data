@@ -23,7 +23,7 @@ use function stream_get_contents;
  */
 class RdsDataConverter
 {
-    public function convertToJson(mixed $value, int $type): array
+    public function convertToJson(mixed $value, ParameterType $type): array
     {
         switch ($value === null ? ParameterType::NULL : $type) {
             case ParameterType::LARGE_OBJECT:
