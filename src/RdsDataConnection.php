@@ -172,6 +172,11 @@ class RdsDataConnection extends AbstractConnection
         return $this->client;
     }
 
+    public function getNativeConnection(): RDSDataServiceClient
+    {
+        return $this->client;
+    }
+
     public function getResourceArn(): string
     {
         return $this->resourceArn;

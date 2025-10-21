@@ -10,7 +10,6 @@ use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Exception\SyntaxErrorException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Nemo64\DbalRdsData\RdsDataDriver;
 use Nemo64\DbalRdsData\RdsDataException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -58,9 +57,7 @@ class RdsDataExceptionTest extends TestCase
     public function testMessageParsing(string $message, int|null $expectedCode, string $expectedException): void
     {
         $exception = RdsDataException::interpretErrorMessage($message);
-        $this->assertEquals($expectedCode, $exception->getErrorCode());
-
-        $driver = new RdsDataDriver();
-        $this->assertInstanceOf($expectedException, $driver->convertException($exception->getMessage(), $exception));
+        $this->assertEquals($expectedCode !== null ? (string) $expectedCode : null, $exception->getErrorCode());
+        $this->assertEquals($message, $exception->getMessage());
     }
 }

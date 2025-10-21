@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Nemo64\DbalRdsData;
 
 use Doctrine\DBAL\Driver\Connection;
-use Doctrine\DBAL\Driver\Statement;
+use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\ParameterType;
-use Exception;
 
 use function addslashes;
 use function base64_encode;
-use function func_get_args;
 use function mb_detect_encoding;
-use function reset;
 use function sprintf;
 
 /**
@@ -37,14 +34,11 @@ abstract class AbstractConnection implements Connection
         return sprintf("'%s'", addslashes($value));
     }
 
-    public function query(): Statement
+    public function query(string $sql): Result
     {
-        $args = func_get_args();
-        $sql = $args[0];
         $stmt = $this->prepare($sql);
-        $stmt->execute();
 
-        return $stmt;
+        return $stmt->execute();
     }
 
     /**
@@ -55,17 +49,8 @@ abstract class AbstractConnection implements Connection
     public function exec($statement): int
     {
         $stmt = $this->prepare($statement);
-        $success = $stmt->execute();
+        $result = $stmt->execute();
 
-        $errorInfo = $stmt->errorInfo();
-        if (! empty($errorInfo)) {
-            throw new Exception(reset($errorInfo), $stmt->errorCode());
-        }
-
-        if (! $success) {
-            return 0;
-        }
-
-        return $stmt->rowCount();
+        return $result->rowCount();
     }
 }

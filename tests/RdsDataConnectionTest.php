@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nemo64\DbalRdsData\Tests;
 
-use Doctrine\DBAL\FetchMode;
+use Doctrine\DBAL\Driver\Result;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -47,9 +47,9 @@ class RdsDataConnectionTest extends TestCase
             ],
         );
 
-        $statement = $this->connection->query('SELECT * FROM table');
-        $this->assertEquals(['id' => 1], $statement->fetch(FetchMode::ASSOCIATIVE));
-        $this->assertFalse($statement->fetch(FetchMode::ASSOCIATIVE));
+        $result = $this->connection->query('SELECT * FROM table');
+        $this->assertEquals(['id' => 1], $result->fetchAssociative());
+        $this->assertFalse($result->fetchAssociative());
     }
 
     public function testTransaction(): void
@@ -91,9 +91,9 @@ class RdsDataConnectionTest extends TestCase
                 ],
             ],
         );
-        $statement = $this->connection->query('SELECT * FROM table');
-        $this->assertEquals(['id' => 1], $statement->fetch(FetchMode::ASSOCIATIVE));
-        $this->assertFalse($statement->fetch(FetchMode::ASSOCIATIVE));
+        $result = $this->connection->query('SELECT * FROM table');
+        $this->assertEquals(['id' => 1], $result->fetchAssociative());
+        $this->assertFalse($result->fetchAssociative());
 
         $this->assertFalse($this->connection->beginTransaction());
 
@@ -186,8 +186,8 @@ class RdsDataConnectionTest extends TestCase
 
         $statement = $this->connection->prepare('UPDATE foobar SET value = ?');
         $statement->bindValue(0, 5);
-        $statement->execute();
-        $this->assertEquals(5, $statement->rowCount());
+        $result = $statement->execute();
+        $this->assertEquals(5, $result->rowCount());
     }
 
     public static function quoteValues(): array
@@ -230,8 +230,8 @@ class RdsDataConnectionTest extends TestCase
         );
 
         $statement = $this->connection->prepare('INSERT INTO foobar SET value = ?');
-        $statement->execute([5]);
-        $this->assertEquals(1, $statement->rowCount());
+        $result = $statement->execute([5]);
+        $this->assertEquals(1, $result->rowCount());
         $this->assertEquals(5, $this->connection->lastInsertId());
     }
 
@@ -253,7 +253,8 @@ class RdsDataConnectionTest extends TestCase
         $this->assertEquals('db', $this->connection->getDatabase());
         $statement = $this->connection->prepare($useStatement);
         $this->assertEquals('db', $this->connection->getDatabase());
-        $this->assertTrue($statement->execute());
+        $result = $statement->execute();
+        $this->assertInstanceOf(Result::class, $result);
         $this->assertEquals($dbname, $this->connection->getDatabase());
     }
 }

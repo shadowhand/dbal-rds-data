@@ -7,8 +7,6 @@ namespace Nemo64\DbalRdsData;
 use Aws\RDSDataService\RDSDataServiceClient;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
-use Doctrine\DBAL\Driver\DriverException;
-use Doctrine\DBAL\Exception as DBALException;
 
 class RdsDataDriver extends Driver\AbstractMySQLDriver
 {
@@ -48,22 +46,6 @@ class RdsDataDriver extends Driver\AbstractMySQLDriver
         return $connection;
     }
 
-    public function getName(): string
-    {
-        return 'rds-data';
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function convertException($message, DriverException $exception): DBALException
-    {
-        return match ($exception->getErrorCode()) {
-            '6000' => new DBALException\ConnectionException($message, $exception),
-            default => parent::convertException($message, $exception),
-        };
-    }
-
     public function getDatabase(Connection $conn): string|null
     {
         $params = $conn->getParams();
@@ -71,7 +53,7 @@ class RdsDataDriver extends Driver\AbstractMySQLDriver
             return $params['dbname'];
         }
 
-        $connection = $conn->getWrappedConnection();
+        $connection = $conn->getNativeConnection();
         if (! $connection instanceof RdsDataConnection) {
             return null;
         }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nemo64\DbalRdsData\Tests;
 
-use Doctrine\DBAL\FetchMode;
 use Nemo64\DbalRdsData\RdsDataStatement;
 use PHPUnit\Framework\TestCase;
 
@@ -50,10 +49,9 @@ class RdsDataStatementTest extends TestCase
 
         $statement = new RdsDataStatement($this->connection, 'SELECT 1 AS id');
 
-        $statement->setFetchMode(FetchMode::NUMERIC);
-        $statement->execute();
-        $this->assertEquals([[1]], $statement->fetchAll());
-        $statement->execute();
-        $this->assertEquals([[1]], $statement->fetchAll());
+        $result1 = $statement->execute();
+        $this->assertEquals([[1]], $result1->fetchAllNumeric());
+        $result2 = $statement->execute();
+        $this->assertEquals([[1]], $result2->fetchAllNumeric());
     }
 }

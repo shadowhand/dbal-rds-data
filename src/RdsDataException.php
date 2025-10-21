@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Nemo64\DbalRdsData;
 
-use Doctrine\DBAL\Driver\AbstractDriverException;
+use Doctrine\DBAL\Driver\AbstractException;
+use Doctrine\DBAL\Driver\Exception as DriverExceptionInterface;
 
 use function preg_match;
 
@@ -14,7 +15,7 @@ use function preg_match;
  *
  * @see https://forums.aws.amazon.com/thread.jspa?threadID=317595
  */
-class RdsDataException extends AbstractDriverException
+class RdsDataException extends AbstractException implements DriverExceptionInterface
 {
     /**
      * This expression is generated on the mysql documentation using the following script:
@@ -108,9 +109,19 @@ class RdsDataException extends AbstractDriverException
     public static function interpretErrorMessage(string $message): self
     {
         if (preg_match(self::EXPRESSION, $message, $match)) {
-            return new self($message, null, $match['MARK']);
+            return new self($message, null, (int) $match['MARK']);
         }
 
-        return new self($message);
+        return new self($message, null, 0);
+    }
+
+    public function getErrorCode(): string|null
+    {
+        return $this->getCode() !== 0 ? (string) $this->getCode() : null;
+    }
+
+    public function getSQLState(): string|null
+    {
+        return $this->getSqlState();
     }
 }

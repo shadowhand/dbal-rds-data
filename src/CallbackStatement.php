@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nemo64\DbalRdsData;
 
-use Doctrine\DBAL\Cache\ArrayStatement;
+use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
 
-class CallbackStatement extends ArrayStatement implements Statement
+class CallbackStatement implements Statement
 {
     /**
      * @var callable
@@ -17,8 +17,6 @@ class CallbackStatement extends ArrayStatement implements Statement
 
     public function __construct(callable $callback)
     {
-        parent::__construct([]);
-
         $this->callback = $callback;
     }
 
@@ -51,13 +49,10 @@ class CallbackStatement extends ArrayStatement implements Statement
     /**
      * @inheritDoc
      */
-    public function execute($params = null): bool
+    public function execute($params = null): Result
     {
-        return ($this->callback)() ?? true;
-    }
+        ($this->callback)();
 
-    public function rowCount(): int
-    {
-        return 0;
+        return new CallbackResult();
     }
 }

@@ -4,14 +4,10 @@ declare(strict_types=1);
 
 namespace Nemo64\DbalRdsData;
 
+use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\Driver\Statement;
-use Doctrine\DBAL\FetchMode;
 use Doctrine\DBAL\ParameterType;
-use Iterator;
-use IteratorAggregate;
-use PDO;
 
-use function func_get_args;
 use function is_iterable;
 use function preg_match;
 use function reset;
@@ -21,7 +17,7 @@ use function reset;
  * @see https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.html
  * @see https://docs.aws.amazon.com/rdsdataservice/latest/APIReference/API_ExecuteStatement.html
  */
-class RdsDataStatement implements IteratorAggregate, Statement
+class RdsDataStatement implements Statement
 {
     /**
      * This expression is used to detect DDL queries.
@@ -35,68 +31,10 @@ class RdsDataStatement implements IteratorAggregate, Statement
 
     private RdsDataParameterBag $parameterBag;
 
-    /**
-     * Retain the fetch mode across results
-     */
-    private array $fetchMode = [FetchMode::MIXED];
-
-    private RdsDataResult|null $result = null;
-
     public function __construct(private RdsDataConnection $connection, private string $sql, RdsDataConverter|null $dataConverter = null)
     {
         $this->dataConverter = $dataConverter ?? new RdsDataConverter();
         $this->parameterBag = new RdsDataParameterBag($this->dataConverter);
-    }
-
-    public function closeCursor(): bool
-    {
-        // there is not really a cursor but I can free the memory the records are taking up.
-        $this->result = null;
-
-        return true;
-    }
-
-    public function columnCount(): int
-    {
-        return $this->result->columnCount();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function setFetchMode($fetchMode, $arg2 = null, $arg3 = null): bool
-    {
-        $this->fetchMode = func_get_args();
-
-        if ($this->result !== null) {
-            $this->result->setFetchMode(...$this->fetchMode);
-        }
-
-        return true;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function fetchAll($fetchMode = null, $fetchArgument = null, $ctorArgs = null): array
-    {
-        return $this->result->fetchAll($fetchMode, $fetchArgument, $ctorArgs);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function fetchColumn($columnIndex = 0): mixed
-    {
-        return $this->result->fetchColumn($columnIndex);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function fetch($fetchMode = null, $cursorOrientation = PDO::FETCH_ORI_NEXT, $cursorOffset = 0): mixed
-    {
-        return $this->result->fetch($fetchMode, $cursorOrientation, $cursorOffset);
     }
 
     /**
@@ -150,7 +88,7 @@ class RdsDataStatement implements IteratorAggregate, Statement
      *
      * @inheritDoc
      */
-    public function execute($params = null): bool
+    public function execute($params = null): Result
     {
         if (is_iterable($params)) {
             foreach ($params as $paramKey => $paramValue) {
@@ -184,19 +122,6 @@ class RdsDataStatement implements IteratorAggregate, Statement
             $this->connection->setLastInsertId((string) $generatedValue);
         }
 
-        $this->result = new RdsDataResult($result, $this->dataConverter);
-        $this->result->setFetchMode(...$this->fetchMode);
-
-        return true;
-    }
-
-    public function rowCount(): int
-    {
-        return $this->result->rowCount();
-    }
-
-    public function getIterator(): Iterator
-    {
-        return $this->result->getIterator();
+        return new RdsDataResult($result, $this->dataConverter);
     }
 }
