@@ -41,16 +41,16 @@ class RdsDataConnection extends AbstractConnection
     /**
      * @inheritDoc
      */
-    public function prepare($prepareString): Statement
+    public function prepare($sql): Statement
     {
         // allow selecting a database by "use database;" statement
-        if (preg_match('#^\s*use\s+(?:(\w+)|`([^`]+)`)\s*;?\s*$#i', $prepareString, $match)) {
+        if (preg_match('#^\s*use\s+(?:(\w+)|`([^`]+)`)\s*;?\s*$#i', $sql, $match)) {
             return new CallbackStatement(function () use ($match): void {
                 $this->setDatabase($match[1] ?: $match[2]);
             });
         }
 
-        $this->lastStatement = new RdsDataStatement($this, $prepareString, $this->dataConverter);
+        $this->lastStatement = new RdsDataStatement($this, $sql, $this->dataConverter);
 
         return $this->lastStatement;
     }

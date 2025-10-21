@@ -58,13 +58,10 @@ class RdsDataDriver extends Driver\AbstractMySQLDriver
      */
     public function convertException($message, DriverException $exception): DBALException
     {
-        switch ($exception->getErrorCode()) {
-            case '6000':
-                return new DBALException\ConnectionException($message, $exception);
-
-            default:
-                return parent::convertException($message, $exception);
-        }
+        return match ($exception->getErrorCode()) {
+            '6000' => new DBALException\ConnectionException($message, $exception),
+            default => parent::convertException($message, $exception),
+        };
     }
 
     public function getDatabase(Connection $conn): string|null

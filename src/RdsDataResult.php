@@ -152,47 +152,51 @@ class RdsDataResult implements IteratorAggregate, ResultStatement
     {
         $numResult = array_map([$this->dataConverter, 'convertToValue'], $result);
 
-        switch ($fetchMode) {
-            case FetchMode::NUMERIC:
-                return $numResult;
-
-            case FetchMode::ASSOCIATIVE:
-                $columnNames = array_column($this->result['columnMetadata'], 'label');
-
-                return array_combine($columnNames, $numResult);
-
-            case FetchMode::MIXED:
-                $columnNames = array_column($this->result['columnMetadata'], 'label');
-
-                return $numResult + array_combine($columnNames, $numResult);
-
-            case FetchMode::STANDARD_OBJECT:
-                $columnNames = array_column($this->result['columnMetadata'], 'label');
-
-                return (object) array_combine($columnNames, $numResult);
-
-            case FetchMode::COLUMN:
-                return $numResult[$fetchArgument ?? 0];
-
-            case FetchMode::CUSTOM_OBJECT:
-                try {
-                    $class = new ReflectionClass($fetchArgument);
-                    $result = $class->newInstanceWithoutConstructor();
-
-                    self::mapProperties($class, $result, $this->result['columnMetadata'], $numResult);
-
-                    $constructor = $class->getConstructor();
-                    if ($constructor !== null) {
-                        $constructor->invokeArgs($result, (array) $ctorArgs);
-                    }
-
-                    return $result;
-                } catch (ReflectionException $e) {
-                    throw new RdsDataException("could not fetch as class '$fetchArgument': {$e->getMessage()}", 0, $e);
-                }
-            default:
-                throw new RuntimeException("Fetch mode $fetchMode not supported");
+        if ($fetchMode === FetchMode::NUMERIC) {
+            return $numResult;
         }
+
+        if ($fetchMode === FetchMode::ASSOCIATIVE) {
+            $columnNames = array_column($this->result['columnMetadata'], 'label');
+
+            return array_combine($columnNames, $numResult);
+        }
+
+        if ($fetchMode === FetchMode::MIXED) {
+            $columnNames = array_column($this->result['columnMetadata'], 'label');
+
+            return $numResult + array_combine($columnNames, $numResult);
+        }
+
+        if ($fetchMode === FetchMode::STANDARD_OBJECT) {
+            $columnNames = array_column($this->result['columnMetadata'], 'label');
+
+            return (object) array_combine($columnNames, $numResult);
+        }
+
+        if ($fetchMode === FetchMode::COLUMN) {
+            return $numResult[$fetchArgument ?? 0];
+        }
+
+        if ($fetchMode === FetchMode::CUSTOM_OBJECT) {
+            try {
+                $class = new ReflectionClass($fetchArgument);
+                $result = $class->newInstanceWithoutConstructor();
+
+                self::mapProperties($class, $result, $this->result['columnMetadata'], $numResult);
+
+                $constructor = $class->getConstructor();
+                if ($constructor !== null) {
+                    $constructor->invokeArgs($result, (array) $ctorArgs);
+                }
+
+                return $result;
+            } catch (ReflectionException $e) {
+                throw new RdsDataException("could not fetch as class '$fetchArgument': {$e->getMessage()}", 0, $e);
+            }
+        }
+
+        throw new RuntimeException("Fetch mode $fetchMode not supported");
     }
 
     private static function mapProperties(ReflectionClass $class, object $result, array $metadata, array $numResult): void
@@ -200,7 +204,6 @@ class RdsDataResult implements IteratorAggregate, ResultStatement
         foreach ($metadata as $columnIndex => ['label' => $columnName]) {
             if ($class->hasProperty($columnName)) {
                 $property = $class->getProperty($columnName);
-                $property->setAccessible(true);
                 $property->setValue($result, $numResult[$columnIndex]);
                 continue;
             }

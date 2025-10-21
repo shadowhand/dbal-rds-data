@@ -17,7 +17,7 @@ use function is_string;
 use function min;
 use function preg_last_error;
 use function preg_replace_callback;
-use function substr;
+use function str_ends_with;
 
 use const ARRAY_FILTER_USE_KEY;
 
@@ -114,7 +114,7 @@ class RdsDataParameterBag
         if (! is_string($sql)) {
             // snipped from https://www.php.net/manual/de/function.preg-last-error.php#124124
             $pregError = array_flip(array_filter(get_defined_constants(true)['pcre'], static function (int $value): bool {
-                return substr((string) $value, -6) === '_ERROR';
+                return str_ends_with((string) $value, '_ERROR');
             }, ARRAY_FILTER_USE_KEY))[preg_last_error()] ?? 'unknown error';
 
             throw new RuntimeException("sql param replacement failed: $pregError");

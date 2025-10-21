@@ -29,6 +29,7 @@
     ],
     "require": {
         "php": "^8.3",
+        "ext-pdo": "*",
         "aws/aws-sdk-php": "^3.98",
         "doctrine/dbal": "^2.7"
     },
