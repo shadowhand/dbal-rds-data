@@ -5,6 +5,7 @@ namespace Nemo64\DbalRdsData\Tests;
 
 use Doctrine\DBAL\ParameterType;
 use Nemo64\DbalRdsData\RdsDataConverter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class RdsDataConverterTest extends TestCase
@@ -23,19 +24,15 @@ class RdsDataConverterTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider data
-     */
-    public function testConvertToValue($json, $php)
+    #[DataProvider('data')]
+    public function testConvertToValue($json, $php, $type)
     {
         $converter = new RdsDataConverter();
         $convertedValue = $converter->convertToValue($json);
         $this->assertEquals($php, $convertedValue);
     }
 
-    /**
-     * @dataProvider data
-     */
+    #[DataProvider('data')]
     public function testConvertToJson($json, $php, $type)
     {
         $converter = new RdsDataConverter();

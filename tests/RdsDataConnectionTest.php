@@ -4,6 +4,7 @@ namespace Nemo64\DbalRdsData\Tests;
 
 
 use Doctrine\DBAL\FetchMode;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class RdsDataConnectionTest extends TestCase
@@ -44,7 +45,7 @@ class RdsDataConnectionTest extends TestCase
 
         $statement = $this->connection->query('SELECT * FROM table');
         $this->assertEquals(['id' => 1], $statement->fetch(FetchMode::ASSOCIATIVE));
-        $this->assertEquals(false, $statement->fetch(FetchMode::ASSOCIATIVE));
+        $this->assertFalse($statement->fetch(FetchMode::ASSOCIATIVE));
     }
 
     public function testTransaction()
@@ -88,7 +89,7 @@ class RdsDataConnectionTest extends TestCase
         );
         $statement = $this->connection->query('SELECT * FROM table');
         $this->assertEquals(['id' => 1], $statement->fetch(FetchMode::ASSOCIATIVE));
-        $this->assertEquals(false, $statement->fetch(FetchMode::ASSOCIATIVE));
+        $this->assertFalse($statement->fetch(FetchMode::ASSOCIATIVE));
 
         $this->assertFalse($this->connection->beginTransaction());
 
@@ -194,9 +195,7 @@ class RdsDataConnectionTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider quoteValues
-     */
+    #[DataProvider('quoteValues')]
     public function testQuote($value, $expectation)
     {
         $this->assertEquals($expectation, $this->connection->quote($value));
@@ -244,9 +243,7 @@ class RdsDataConnectionTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider databaseUseStatements
-     */
+    #[DataProvider('databaseUseStatements')]
     public function testUseDatabase($dbname, $useStatement)
     {
         $this->assertEquals('db', $this->connection->getDatabase());

@@ -11,6 +11,7 @@ use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Nemo64\DbalRdsData\RdsDataDriver;
 use Nemo64\DbalRdsData\RdsDataException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class RdsDataExceptionTest extends TestCase
@@ -52,9 +53,7 @@ class RdsDataExceptionTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider messages
-     */
+    #[DataProvider('messages')]
     public function testMessageParsing($message, $expectedCode, $expectedException)
     {
         $exception = RdsDataException::interpretErrorMessage($message);

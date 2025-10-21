@@ -4,6 +4,7 @@ namespace Nemo64\DbalRdsData\Tests;
 
 
 use Nemo64\DbalRdsData\RdsDataParameterBag;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class RdsDataParameterBagTest extends TestCase
@@ -64,9 +65,7 @@ class RdsDataParameterBagTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider sqlPreparation
-     */
+    #[DataProvider('sqlPreparation')]
     public function testPrepareSqlStatement(array $parameters, string $sql, string $expected)
     {
         $parameterBag = new RdsDataParameterBag();

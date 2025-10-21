@@ -7,6 +7,7 @@ use Aws\Result;
 use Doctrine\DBAL\FetchMode;
 use Nemo64\DbalRdsData\RdsDataResult;
 use Nemo64\DbalRdsData\Tests\TestClasses\ClassWithConstructor;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class RdsDataResultTest extends TestCase
@@ -89,9 +90,7 @@ class RdsDataResultTest extends TestCase
         ]));
     }
 
-    /**
-     * @dataProvider modes
-     */
+    #[DataProvider('modes')]
     public function testFetch($fetchMode, $expectedResult)
     {
         $this->result->setFetchMode(...$fetchMode);
@@ -100,9 +99,7 @@ class RdsDataResultTest extends TestCase
         $this->assertEquals(false, $this->result->fetch());
     }
 
-    /**
-     * @dataProvider modes
-     */
+    #[DataProvider('modes')]
     public function testFetchAllSetFetchMode($fetchMode, $expectedResult)
     {
         $this->result->setFetchMode(...$fetchMode);
@@ -112,9 +109,7 @@ class RdsDataResultTest extends TestCase
         );
     }
 
-    /**
-     * @dataProvider modes
-     */
+    #[DataProvider('modes')]
     public function testFetchAllGiveFetchMode($fetchMode, $expectedResult)
     {
         $this->assertEquals(
@@ -129,9 +124,7 @@ class RdsDataResultTest extends TestCase
         $this->assertEquals(false, $this->result->fetchColumn(1));
     }
 
-    /**
-     * @dataProvider modes
-     */
+    #[DataProvider('modes')]
     public function testIterator($fetchMode, $expectedResult)
     {
         $this->result->setFetchMode(...$fetchMode);
